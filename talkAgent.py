@@ -31,7 +31,7 @@ if not ELEVEN_API_KEY:
 eleven_client = ElevenLabs(api_key=ELEVEN_API_KEY)
 
 # Use the default "Adam" voice ID as requested
-DEFAULT_VOICE_ID = "pNInz6obpgDQGcFmaJgB"
+DEFAULT_VOICE_ID = "N2lVS1w4EtoT3dr4eOWO"
 
 # --- 3. Audio Utility Functions (Moved from utils.py) ---
 
@@ -68,27 +68,26 @@ def speak_text(text: str, voice_id: str = DEFAULT_VOICE_ID):
     Convert text to speech using ElevenLabs TTS and play it.
     Uses the method from your 'text to speech' example.
     """
-    print("🤖 Generating speech...")
+    print(" Generating speech...")
     try:
         # Use the correct TTS method from your example
         audio_bytes = eleven_client.text_to_speech.convert(
             text=text,
             voice_id=voice_id,
-            model_id="eleven_multilingual_v2",
+            model_id="eleven_flash_v2_5",
             output_format="mp3_44100_128"
         )
         
-        print("🔈 Playing response...")
+        print(" Playing response...")
         # --- FIX 2: Added error handling for playback ---
         # This stops the program from crashing if ffmpeg is not installed
         try:
             play(audio_bytes)
         except Exception as e_play:
-            print(f"⚠️ Playback Error: {e_play}")
-            print("⚠️ To hear audio, please install ffmpeg on your system. You can get it from https://ffmpeg.org/")
+            print(f"fix ffmpeg: {e_play}")
         
     except Exception as e_tts:
-        print(f"❌ Error during text-to-speech API call: {e_tts}")
+        print(f"tts API call fail: {e_tts}")
 
 # --- 4. Core Application Logic ---
 
@@ -97,7 +96,7 @@ async def transcribe_audio_realtime(filename: str) -> str:
     Transcribe recorded audio using ElevenLabs STT API.
     Uses the method from your 'example.py' (STT) example.
     """
-    print("🎧 Transcribing audio...")
+    print("translating audio...")
     try:
         with open(filename, "rb") as audio_file:
             # --- FIX 1: Corrected the STT model_id ---
@@ -115,14 +114,14 @@ async def transcribe_audio_realtime(filename: str) -> str:
         return text
         
     except Exception as e:
-        print(f"❌ Error during transcription: {e}")
+        print(f"couldnt translate: {e}")
         return ""
 
 async def interpret_command():
     """Main loop: listen -> transcribe -> interpret -> respond"""
     
-    print("🟢 Voice agent started. Speak a command or 'exit' to quit.")
-    speak_text("Agent is online and ready for a funny chat.")
+    print("agents started. Speak a command or 'exit' to quit.")
+    speak_text("Yo whats up dawg! Its me taco what do you want me to do?")
 
     while True:
         # 1. Record audio from the user
@@ -131,7 +130,7 @@ async def interpret_command():
         user_text = await transcribe_audio_realtime(filename)
 
         if not user_text:
-            print("❌ No speech detected.")
+            print("No speech detected.")
             continue
 
         # 3. Check for exit condition immediately after transcription
@@ -142,7 +141,7 @@ async def interpret_command():
 
         # 4. Send text to Gemini for command interpretation
         prompt = f"""
-        You are a command-understanding and conversational AI. 
+        You are a command-understanding and conversational AI named Taco. 
         Convert the following user speech into a JSON object that includes both a list of commands and a funny, short, conversational reply.
 
         The JSON must have two top-level keys:
@@ -154,16 +153,20 @@ async def interpret_command():
         Output: {{
             "response_text": "You got it, little ball! Here I come to scoot you to the left!",
             "commands": [
-                {{"action": "move", "object": "ball", "direction": "left", "amount": "a bit"}}
+                {{"action": "move", "object": "sports ball", "direction": "left", "amount": "a bit"}}
             ]
         }}
         
+        The only valid objects for the 'object' key in your command are listed below. If the user mentions an object that is NOT on this list (e.g., 'little ball'), you MUST choose the closest matching object from the list to use in the command (e.g., 'sports ball').
+
+        Valid Object List (comma-separated):
+        person, bicycle, car, motorcycle, airplane, bus, train, truck, boat, traffic light, fire hydrant, stop sign, parking meter, bench, bird, cat, dog, horse, sheep, cow, elephant, bear, zebra, giraffe, backpack, umbrella, handbag, tie, suitcase, frisbee, skis, snowboard, sports ball, kite, baseball bat, baseball glove, skateboard, surfboard, tennis racket, bottle, wine glass, cup, fork, knife, spoon, bowl, banana, apple, sandwich, orange, broccoli, carrot, hot dog, pizza, donut, cake, chair, couch, potted plant, bed, dining table, toilet, tv, laptop, mouse, remote, keyboard, cell phone, microwave, oven, toaster, sink, refrigerator, book, clock, vase, scissors, teddy bear, hair drier, toothbrush
+
         Now for this user input:
         "{user_text}"
         """
         
-        print("🧠 Thinking...")
-        
+        print("Thinking...")
         # --- START OF REVISED LOGIC ---
         
         commands = None # Will hold the parsed JSON object
@@ -188,7 +191,7 @@ async def interpret_command():
                 response_to_speak = commands.get("response_text", f"I heard '{user_text}', but my funny bone is on vacation.")
 
             except Exception as e_json:
-                print(f"⚠️ Could not parse JSON ({e_json}). Falling back to raw text command.")
+                print(f"Could not parse JSON ({e_json}). Falling back to raw text command.")
                 # If parsing fails, create a simple JSON structure for logging/terminal output
                 commands = {
                     "response_text": response_to_speak,
@@ -196,18 +199,14 @@ async def interpret_command():
                 }
             
             # 6. Terminal output: show the full JSON, even if it's the fallback version
-            print("📦 Command JSON:", json.dumps(commands, indent=2))
+            print("Command JSON:", json.dumps(commands, indent=2))
             
             # 7. Respond with the funny voice reply (which is now guaranteed to be a string)
             speak_text(response_to_speak)
                 
         except Exception as e_gemini:
-            print(f"❌ Error during Gemini call: {e_gemini}")
+            print(f"Gemini call failed: {e_gemini}")
             speak_text("Sorry, a connection error stopped me from understanding that.")
-
-        # --- END OF REVISED LOGIC ---
-
-# The rest of your script remains the same.
 
 if __name__ == "__main__":
     asyncio.run(interpret_command())
