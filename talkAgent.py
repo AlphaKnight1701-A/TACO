@@ -199,7 +199,7 @@ async def interpret_command():
                 }
             
             # 6. Terminal output: show the full JSON, even if it's the fallback version
-            print("Command JSON:", json.dumps(commands, indent=2))
+            print("📦 Command JSON:", json.dumps(commands, indent=2))
             
             # 7. Respond with the funny voice reply (which is now guaranteed to be a string)
             speak_text(response_to_speak)
