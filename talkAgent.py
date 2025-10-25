@@ -18,14 +18,14 @@ load_dotenv()
 # --- 1. Configure Gemini ---
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 if not GOOGLE_API_KEY:
-    raise RuntimeError("❌ GOOGLE_API_KEY not found in .env")
+    raise RuntimeError("X GOOGLE_API_KEY not found in .env")
 genai.configure(api_key=GOOGLE_API_KEY)
 model = genai.GenerativeModel("gemini-2.5-flash-lite")
 
 # --- 2. Configure ElevenLabs Client ---
 ELEVEN_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 if not ELEVEN_API_KEY:
-    raise RuntimeError("❌ ELEVENLABS_API_KEY not found in .env")
+    raise RuntimeError("X - ELEVENLABS_API_KEY not found in .env")
 
 # This is the correct way to initialize the client, as per your examples
 eleven_client = ElevenLabs(api_key=ELEVEN_API_KEY)
@@ -122,7 +122,7 @@ async def interpret_command():
     """Main loop: listen -> transcribe -> interpret -> respond"""
     
     print("🟢 Voice agent started. Speak a command or 'exit' to quit.")
-    speak_text("Agent is online.")
+    speak_text("Agent is online and ready for a funny chat.")
 
     while True:
         # 1. Record audio from the user
@@ -134,52 +134,82 @@ async def interpret_command():
             print("❌ No speech detected.")
             continue
 
-        # 3. Send text to Gemini for command interpretation
+        # 3. Check for exit condition immediately after transcription
+        if "exit" in user_text.lower() or "quit" in user_text.lower():
+            print("👋 Exiting agent.")
+            speak_text("Goodbye, keep it funny out there!")
+            break
+
+        # 4. Send text to Gemini for command interpretation
         prompt = f"""
-        You are a command-understanding AI. Convert the following user speech into JSON commands.
+        You are a command-understanding and conversational AI. 
+        Convert the following user speech into a JSON object that includes both a list of commands and a funny, short, conversational reply.
+
+        The JSON must have two top-level keys:
+        1. 'response_text': A funny, engaging, short and conversational reply to the user.
+        2. 'commands': An array of command objects.
+
         Example:
-        User: "Turn on the lights and play music"
+        User: "Can you move the ball from there to the left a bit"
         Output: {{
+            "response_text": "You got it, little ball! Here I come to scoot you to the left!",
             "commands": [
-                {{"action": "turn_on", "object": "lights"}},
-                {{"action": "play", "object": "music"}}
+                {{"action": "move", "object": "ball", "direction": "left", "amount": "a bit"}}
             ]
         }}
+        
         Now for this user input:
         "{user_text}"
         """
         
         print("🧠 Thinking...")
+        
+        # --- START OF REVISED LOGIC ---
+        
+        commands = None # Will hold the parsed JSON object
+        response_to_speak = "I understood that, but I need a moment to translate it into a witty response." # Default fallback reply
+
         try:
             response = model.generate_content(prompt)
             text_response = response.text
 
-            # 4. Parse Gemini's JSON response
+            # Parse Gemini's JSON response
             try:
+                # 5a. Isolate the JSON string (in case Gemini adds prose outside the curly braces)
                 start = text_response.find("{")
                 end = text_response.rfind("}") + 1
                 json_str = text_response[start:end]
-                commands = json.loads(json_str)
-            except Exception:
-                print(f"⚠️ Could not parse JSON, falling back to raw text.")
-                commands = {"commands": [{"raw_text": user_text}]}
+                
+                # 5b. Load the JSON and extract the speech part
+                parsed_json = json.loads(json_str)
+                commands = parsed_json # Store the full JSON for terminal output
+                
+                # CRITICAL: ONLY extract the 'response_text' for speaking
+                response_to_speak = commands.get("response_text", f"I heard '{user_text}', but my funny bone is on vacation.")
+
+            except Exception as e_json:
+                print(f"⚠️ Could not parse JSON ({e_json}). Falling back to raw text command.")
+                # If parsing fails, create a simple JSON structure for logging/terminal output
+                commands = {
+                    "response_text": response_to_speak,
+                    "commands": [{"raw_text": user_text, "error": "JSON_PARSE_FAILURE"}]
+                }
             
+            # 6. Terminal output: show the full JSON, even if it's the fallback version
             print("📦 Command JSON:", json.dumps(commands, indent=2))
             
-            # 5. Respond with voice
-            speak_text(f"Command understood: {user_text}")
-
-            # 6. Check for exit condition
-            if "exit" in user_text.lower() or "quit" in user_text.lower():
-                print("👋 Exiting agent.")
-                speak_text("Goodbye.")
-                break
+            # 7. Respond with the funny voice reply (which is now guaranteed to be a string)
+            speak_text(response_to_speak)
                 
-        except Exception as e:
-            print(f"❌ Error during Gemini call: {e}")
-            speak_text("Sorry, I had trouble understanding that.")
+        except Exception as e_gemini:
+            print(f"❌ Error during Gemini call: {e_gemini}")
+            speak_text("Sorry, a connection error stopped me from understanding that.")
 
+        # --- END OF REVISED LOGIC ---
+
+# The rest of your script remains the same.
 
 if __name__ == "__main__":
     asyncio.run(interpret_command())
+
 
