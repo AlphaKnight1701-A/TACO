@@ -215,10 +215,10 @@ If issues persist:
 ## Architecture Overview
 
 ```
-┌─────────────┐         ┌──────────────┐         ┌─────────────┐
-│   Camera    │────────▶│   main.py    │────────▶│commands.txt │
-│  (Bottle)   │         │  (YOLOv8)    │         │             │
-└─────────────┘         └──────────────┘         └──────┬──────┘
+┌─────────────┐          ┌──────────────┐         ┌─────────────┐
+│   Camera    │─────── ▶│   main.py    │────────▶│commands.txt │
+│  (Bottle)   │          │  (YOLOv8)    │         │             │
+└─────────────┘          └──────────────┘         └──────┬──────┘
                                                          │
                         ┌──────────────┐                │
                         │robot_runner  │◀───────────────┘
@@ -245,3 +245,4 @@ MIT License - Feel free to use and modify!
 ## Contributors
 
 Built with ❤️ for LEGO Mindstorms robot tracking
+
