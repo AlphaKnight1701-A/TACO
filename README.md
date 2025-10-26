@@ -220,7 +220,7 @@ If issues persist:
 │  (Bottle)   │          │  (YOLOv8)    │         │             │
 └─────────────┘          └──────────────┘         └──────┬──────┘
                                                          │
-                        ┌──────────────┐                │
+                        ┌──────────────┐                 │
                         │robot_runner  │◀───────────────┘
                         │    .py       │
                         └──────┬───────┘
@@ -245,4 +245,5 @@ MIT License - Feel free to use and modify!
 ## Contributors
 
 Built with ❤️ for LEGO Mindstorms robot tracking
+
 
